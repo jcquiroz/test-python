@@ -65,16 +65,19 @@ def plot_actual_vs_predicted(actual, predicted, title="Actual vs. Predicted y"):
     plt.show()
 
 
-def plot_3d_regression(df, model, grid_size=20):
+def plot_3d_regression(
+    df, model, grid_size=20, response="y", predict_transform=None, title=None
+):
     x_seq = np.linspace(df["x"].min(), df["x"].max(), grid_size)
     z_seq = np.linspace(df["z"].min(), df["z"].max(), grid_size)
     x_grid, z_grid = np.meshgrid(x_seq, z_seq)
 
-    y_grid = (
-        model.predict(pd.DataFrame({"x": x_grid.ravel(), "z": z_grid.ravel()}))
-        .to_numpy()
-        .reshape(x_grid.shape)
-    )
+    raw_pred = model.predict(
+        pd.DataFrame({"x": x_grid.ravel(), "z": z_grid.ravel()})
+    ).to_numpy()
+    if predict_transform is not None:
+        raw_pred = predict_transform(raw_pred)
+    y_grid = raw_pred.reshape(x_grid.shape)
 
     fig = plt.figure(figsize=(7, 6), dpi=150)
     fig.patch.set_facecolor(SURFACE)
@@ -95,7 +98,7 @@ def plot_3d_regression(df, model, grid_size=20):
     ax.scatter(
         df["x"],
         df["z"],
-        df["y"],
+        df[response],
         s=30,
         color=SERIES_2,
         edgecolors=SURFACE,
@@ -105,14 +108,14 @@ def plot_3d_regression(df, model, grid_size=20):
     )
 
     ax.set_title(
-        f"Regression Plane: {model.model.formula}",
+        title or f"Regression Plane: {model.model.formula}",
         color=INK_PRIMARY,
         fontsize=13,
         pad=12,
     )
     ax.set_xlabel("x", color=INK_SECONDARY, fontsize=10, labelpad=8)
     ax.set_ylabel("z", color=INK_SECONDARY, fontsize=10, labelpad=8)
-    ax.set_zlabel("y", color=INK_SECONDARY, fontsize=10, labelpad=8)
+    ax.set_zlabel(response, color=INK_SECONDARY, fontsize=10, labelpad=8)
     ax.tick_params(colors=INK_MUTED, labelsize=8)
 
     for pane in (ax.xaxis, ax.yaxis, ax.zaxis):

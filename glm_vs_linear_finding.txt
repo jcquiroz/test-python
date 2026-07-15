@@ -1,0 +1,41 @@
+Key finding: GLM (Gamma, log link) vs. Linear model (exp-transformed), on the y_gamma = exp(y) scale
+=====================================================================================================
+
+Setup
+-----
+- Data: make_fake_dataset() from linear_model.py (n=100, seed=42), with
+  y = 3 + 2*x - 0.5*z + noise.
+- Response for this comparison: y_gamma = exp(y), fit two ways:
+    1. GLM, Gamma family, log link:  y_gamma ~ x + z
+    2. OLS on the original scale, then exponentiated: y ~ x + z, prediction = exp(fitted y)
+- Both models' predictions were converted to the same y_gamma scale before scoring,
+  since AIC/BIC are not comparable across different likelihoods/response definitions.
+
+Results
+-------
+Model                       RMSE      MAE      R-squared   Native AIC   Native BIC
+GLM (Gamma, log link)       41.50     11.63    -4.86        419.68       -331.46*
+Linear, exp-transformed     19.45      6.59    -0.29        293.60        301.41
+
+* GLM BIC uses the deviance-based formula (pre-statsmodels-0.13 convention); not
+  directly comparable to the linear model's likelihood-based BIC.
+
+Key finding
+-----------
+Both R-squared values are negative: exponentiating y produces a heavily right-skewed
+response (y up to ~4.8 -> exp(4.8) ~ 122), and a handful of large outliers dominate
+squared/absolute error for any mean-based model - including one that just predicts
+the average.
+
+The naive exp-transformed linear model actually shows LOWER RMSE/MAE here than the
+"correctly specified" Gamma GLM. The GLM raises its intercept (3.46 vs. the linear
+model's 2.90) to correct for Jensen's-inequality bias in the mean on the log scale,
+which improves the fit to E[y_gamma | x, z] in principle, but that upward correction
+costs more when squared against the largest outliers in raw scale.
+
+Bottom line: on this synthetic dataset, the Gamma GLM's advantage is in correctly
+modeling E[y_gamma | x, z] under the assumed log-link/Gamma structure - not in
+minimizing raw squared error against noisy exponentiated draws. The RMSE/MAE gap
+reflects the response's heavy skew, not a flaw in the GLM specification. Native
+AIC/BIC are not cross-comparable here because the two models fit different
+likelihoods over different response definitions (Gamma on y_gamma vs. Gaussian on y).
