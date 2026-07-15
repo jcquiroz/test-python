@@ -14,11 +14,13 @@ Setup
 Results
 -------
 Model                       RMSE      MAE      R-squared   Native AIC   Native BIC
-GLM (Gamma, log link)       41.50     11.63    -4.86        419.68       -331.46*
-Linear, exp-transformed     19.45      6.59    -0.29        293.60        301.41
+GLM (Gamma, log link)       41.50     11.63    -4.86        419.68       427.49
+Linear, exp-transformed     19.45      6.59    -0.29        293.60       301.41
 
-* GLM BIC uses the deviance-based formula (pre-statsmodels-0.13 convention); not
-  directly comparable to the linear model's likelihood-based BIC.
+Both Native BIC values use the log-likelihood-based formula (GLM via bic_llf,
+OLS via its default bic) for a consistent formula across models. They are still
+not directly comparable in an absolute sense, since the two models fit different
+likelihoods over different response definitions (Gamma on y_gamma vs. Gaussian on y).
 
 Key finding
 -----------
